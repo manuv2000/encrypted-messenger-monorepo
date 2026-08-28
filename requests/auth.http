@@ -1,0 +1,75 @@
+@baseUrl = http://localhost:3000
+@email = api-test@example.com
+@password = Correct-Horse-Battery-Staple-2026
+
+### Database health
+
+GET {{baseUrl}}/health/database
+
+
+### Register a user
+# Run once successfully; run again to verify 409 Conflict
+
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "displayName": "API Test User"
+}
+
+
+### Login
+# @name login
+
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+
+### Login with incorrect password
+# Expected: 401 Unauthorized
+
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "This-password-is-incorrect"
+}
+
+
+### Invalid registration
+# Expected: 400 Bad Request
+
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "not-an-email",
+  "password": "short"
+}
+
+
+### Attempt to submit an undeclared field
+# Expected: 400 Bad Request
+
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "extra-field@example.com",
+  "password": "{{password}}",
+  "isAdmin": true
+}
+
+
+### Protected profile — enable after /auth/me is implemented
+
+# GET {{baseUrl}}/auth/me
+# Authorization: Bearer {{login.response.body.$.accessToken}}

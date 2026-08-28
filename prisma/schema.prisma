@@ -1,14 +1,116 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum KeyAlgorithm {
+  X25519
+  ED25519
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  devices       Device[]
+  conversations ConversationMember[]
+  messages      Message[]            @relation("UserMessages")
+  sessions      AuthSession[]
+
+  @@index([createdAt])
+}
+
+model Device {
+  id         String    @id @default(uuid())
+  userId     String
+  name       String?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime?
+
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keys DeviceKey[]
+
+  @@index([userId])
+}
+
+model DeviceKey {
+  id        String       @id @default(uuid())
+  deviceId  String
+  algorithm KeyAlgorithm
+  publicKey String // store base64
+  createdAt DateTime     @default(now())
+  revokedAt DateTime?
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+  @@index([revokedAt])
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members  ConversationMember[]
+  messages Message[]
+
+  // For listing chats quickly (denormalized pointer)
+  lastMessageAt DateTime?
+
+  @@index([lastMessageAt])
+  @@index([createdAt])
+}
+
+model ConversationMember {
+  conversationId String
+  userId         String
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  senderId       String
+  createdAt      DateTime @default(now())
+
+  // E2EE payload:
+  ciphertext String // base64
+  nonce      String // base64 (IV)
+  // optional: associated data / versioning
+  version    Int    @default(1)
+
+  // optional for ordering + pagination
+  sequence BigInt @default(autoincrement())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("UserMessages", fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@index([conversationId, sequence])
+  @@index([senderId, createdAt])
+}
+
+model AuthSession {
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String    @unique
+  createdAt        DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  replacedById     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
