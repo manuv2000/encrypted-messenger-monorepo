@@ -8,7 +8,7 @@ http:
   url: "{{baseUrl}}/auth/me"
   auth:
     type: bearer
-    token: "{{accessToken}}"
+    token: "{{newUserAccessToken}}"
 
 runtime:
   scripts:

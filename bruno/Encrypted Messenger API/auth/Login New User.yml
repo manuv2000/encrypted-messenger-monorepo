@@ -1,0 +1,101 @@
+info:
+  name: Login New User
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/login"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "email": "{{newEmail}}",
+        "password": "{{newPassword}}"
+      }
+  auth: inherit
+
+runtime:
+  variables:
+    - name: newEmail
+      value: newuser@example.com
+    - name: newPassword
+      value: NewUser-Test-2026!Secur
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 200) {
+          bru.setVar('newUserAccessToken', res.body.accessToken);
+          bru.setVar('newUserRefreshToken', res.body.refreshToken);
+          bru.setVar('newUserId', res.body.user.id);
+        }
+    - type: tests
+      code: |-
+        test('login returns 200 OK', function () {
+          expect(res.getStatus()).to.equal(200);
+        });
+
+        test('response contains an access token', function () {
+          const body = res.getBody();
+
+          expect(body).to.have.property('accessToken');
+          expect(body.accessToken).to.be.a('string');
+          expect(body.accessToken.length).to.be.greaterThan(20);
+        });
+
+        test('access token has JWT structure', function () {
+          const body = res.getBody();
+          const sections = body.accessToken.split('.');
+
+          expect(sections).to.have.lengthOf(3);
+        });
+
+        test('response identifies the token as Bearer', function () {
+          const body = res.getBody();
+
+          expect(body.tokenType).to.equal('Bearer');
+          expect(body.expiresIn).to.equal(900);
+        });
+
+        test('response includes the authenticated user', function () {
+          const body = res.getBody();
+
+          expect(body.user).to.have.property('id');
+          expect(body.user).to.have.property('email');
+        });
+
+        test('response does not expose password data', function () {
+          const body = res.getBody();
+
+          expect(body).not.to.have.property('password');
+          expect(body).not.to.have.property('passwordHash');
+          expect(body.user).not.to.have.property('password');
+          expect(body.user).not.to.have.property('passwordHash');
+        });
+
+        test('response contains both tokens', function () {
+          const body = res.getBody();
+
+          expect(body.accessToken).to.be.a('string');
+          expect(body.refreshToken).to.be.a('string');
+        });
+
+        test('refresh token is not a JWT', function () {
+          const body = res.getBody();
+
+          expect(body.refreshToken.split('.')).to.have.lengthOf(2);
+        });
+
+        test('refresh token lasts 30 days', function () {
+          expect(res.getBody().refreshTokenExpiresIn).to.equal(2592000);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

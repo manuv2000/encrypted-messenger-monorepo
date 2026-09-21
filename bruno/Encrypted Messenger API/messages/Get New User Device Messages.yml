@@ -1,0 +1,45 @@
+info:
+  name: Get New User Device Messages
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/devices/{{newUserDeviceId}}/messages?afterSequence=0&limit=50"
+  params:
+    - name: afterSequence
+      value: "0"
+      type: query
+    - name: limit
+      value: "50"
+      type: query
+  auth:
+    type: bearer
+    token: "{{newUserAccessToken}}"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (
+          res.getStatus() === 200 &&
+          Array.isArray(res.body.messages) &&
+          res.body.messages.length > 0
+        ) {
+          bru.setVar(
+            'receivedMessageId',
+            res.body.messages[0].id,
+          );
+
+          bru.setVar(
+            'lastReceivedSequence',
+            res.body.nextAfterSequence,
+          );
+        }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

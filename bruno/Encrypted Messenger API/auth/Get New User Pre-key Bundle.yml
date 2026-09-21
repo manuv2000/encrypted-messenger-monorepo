@@ -1,0 +1,18 @@
+info:
+  name: Get New User Pre-key Bundle
+  type: http
+  seq: 10
+
+http:
+  method: GET
+  url: "{{baseUrl}}/devices/{{newUserDeviceId}}/prekey-bundle"
+  auth:
+    type: bearer
+    token: "{{newUserAccessToken}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

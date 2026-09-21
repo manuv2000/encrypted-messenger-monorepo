@@ -1,0 +1,42 @@
+info:
+  name: List Devices
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/devices"
+  auth:
+    type: bearer
+    token: |-
+      {{accessToken}}
+        "oneTimePreKeys": [
+          {
+            "keyId": 3,
+            "publicKey": "DQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0="
+          },
+          {
+            "keyId": 4,
+            "publicKey": "Dg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4="
+          }
+        ]
+      {{newUserAccessToken}}
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (
+          res.getStatus() === 200 &&
+          Array.isArray(res.body) &&
+          res.body.length > 0
+        ) {
+          bru.setVar('deviceId', res.body[0].id);
+        }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

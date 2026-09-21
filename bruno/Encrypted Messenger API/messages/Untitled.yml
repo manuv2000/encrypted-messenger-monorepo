@@ -1,0 +1,33 @@
+info:
+  name: Untitled
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/conversations/{{conversationId}}/messages"
+  body:
+    type: json
+    data: |-
+      {
+        "senderDeviceId": "edfc042a-df45-4fa3-8358-079dafbb6fa9",
+        "clientMessageId": "ba4f1b89-fd46-4fa7-a5e4-51de6b09e2d3",
+        "envelopes": [
+          {
+            "recipientDeviceId": "e7ac0f5b-a785-43bc-9a73-979a5603d4a9",
+            "envelopeType": "PREKEY",
+            "protocolVersion": 1,
+            "ciphertext": "VGVzdCBlbmNyeXB0ZWQgcGF5bG9hZA=="
+          }
+        ]
+      }
+  auth:
+    type: bearer
+    token: "{{accessToken}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

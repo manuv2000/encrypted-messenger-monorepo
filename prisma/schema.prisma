@@ -11,6 +11,23 @@ enum KeyAlgorithm {
   ED25519
 }
 
+enum DeviceKeyType {
+  IDENTITY_SIGNING
+  IDENTITY_DH
+  SIGNED_PREKEY
+  ONE_TIME_PREKEY
+}
+
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+enum EncryptedEnvelopeType {
+  PREKEY
+  SESSION
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -33,37 +50,49 @@ model Device {
   name       String?
   createdAt  DateTime  @default(now())
   lastSeenAt DateTime?
+  revokedAt  DateTime?
 
-  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  keys DeviceKey[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  keys              DeviceKey[]
+  sentMessages      Message[]         @relation("DeviceSentMessages")
+  receivedEnvelopes MessageEnvelope[] @relation("RecipientDeviceEnvelopes")
 
   @@index([userId])
-}
-
-model DeviceKey {
-  id        String       @id @default(uuid())
-  deviceId  String
-  algorithm KeyAlgorithm
-  publicKey String // store base64
-  createdAt DateTime     @default(now())
-  revokedAt DateTime?
-
-  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-
-  @@index([deviceId])
   @@index([revokedAt])
 }
 
+model DeviceKey {
+  id         String        @id @default(uuid())
+  deviceId   String
+  type       DeviceKeyType
+  algorithm  KeyAlgorithm
+  keyId      Int
+  publicKey  String
+  signature  String?
+  createdAt  DateTime      @default(now())
+  expiresAt  DateTime?
+  consumedAt DateTime?
+  revokedAt  DateTime?
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, type, keyId])
+  @@index([deviceId, type, revokedAt])
+  @@index([deviceId, type, consumedAt])
+  @@index([expiresAt])
+}
+
 model Conversation {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String           @id @default(uuid())
+  type          ConversationType @default(DIRECT)
+  directKey     String?          @unique
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  lastMessageAt DateTime?
 
   members  ConversationMember[]
   messages Message[]
-
-  // For listing chats quickly (denormalized pointer)
-  lastMessageAt DateTime?
 
   @@index([lastMessageAt])
   @@index([createdAt])
@@ -82,25 +111,39 @@ model ConversationMember {
 }
 
 model Message {
-  id             String   @id @default(uuid())
-  conversationId String
-  senderId       String
-  createdAt      DateTime @default(now())
-
-  // E2EE payload:
-  ciphertext String // base64
-  nonce      String // base64 (IV)
-  // optional: associated data / versioning
-  version    Int    @default(1)
-
-  // optional for ordering + pagination
-  sequence BigInt @default(autoincrement())
+  id              String   @id @default(uuid())
+  conversationId  String
+  senderId        String
+  senderDeviceId  String
+  clientMessageId String
+  createdAt       DateTime @default(now())
+  sequence        BigInt   @default(autoincrement())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User         @relation("UserMessages", fields: [senderId], references: [id], onDelete: Restrict)
+  senderDevice Device       @relation("DeviceSentMessages", fields: [senderDeviceId], references: [id], onDelete: Restrict)
 
+  envelopes MessageEnvelope[]
+
+  @@unique([senderDeviceId, clientMessageId])
   @@index([conversationId, sequence])
   @@index([senderId, createdAt])
+}
+
+model MessageEnvelope {
+  messageId         String
+  recipientDeviceId String
+  envelopeType      EncryptedEnvelopeType
+  protocolVersion   Int                   @default(1)
+  ciphertext        String
+  createdAt         DateTime              @default(now())
+  deliveredAt       DateTime?
+
+  message         Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  recipientDevice Device  @relation("RecipientDeviceEnvelopes", fields: [recipientDeviceId], references: [id], onDelete: Restrict)
+
+  @@id([messageId, recipientDeviceId])
+  @@index([recipientDeviceId, deliveredAt, createdAt])
 }
 
 model AuthSession {

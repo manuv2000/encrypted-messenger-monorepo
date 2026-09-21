@@ -1,0 +1,47 @@
+info:
+  name: Upload New User Key Bundle
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: "{{baseUrl}}/devices/{{newUserDeviceId}}/key-bundle"
+  body:
+    type: json
+    data: |-
+      {
+        "identitySigningKey": {
+          "keyId": 1,
+          "publicKey": "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc="
+        },
+        "identityDhKey": {
+          "keyId": 1,
+          "publicKey": "CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg="
+        },
+        "signedPreKey": {
+          "keyId": 1,
+          "publicKey": "CQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQk=",
+          "signature": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg==",
+          "expiresAt": "2027-09-01T00:00:00.000Z"
+        },
+        "oneTimePreKeys": [
+          {
+            "keyId": 1,
+            "publicKey": "CwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCws="
+          },
+          {
+            "keyId": 2,
+            "publicKey": "DAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw="
+          }
+        ]
+      }
+  auth:
+    type: bearer
+    token: "{{accessToken}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

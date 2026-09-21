@@ -6,7 +6,37 @@ info:
 http:
   method: POST
   url: "{{baseUrl}}/auth/logout"
+  body:
+    type: json
+    data: |-
+      {
+        "refreshToken": "{{refreshToken}}"
+      }
   auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 204) {
+          bru.deleteVar('accessToken');
+          bru.deleteVar('refreshToken');
+        }
+    - type: tests
+      code: |-
+        test('logout returns 204', function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+        test('logout returns no response body', function () {
+          const body = res.getBody();
+
+          expect(
+            body === null ||
+            body === undefined ||
+            body === '',
+          ).to.equal(true);
+        });
 
 settings:
   encodeUrl: true

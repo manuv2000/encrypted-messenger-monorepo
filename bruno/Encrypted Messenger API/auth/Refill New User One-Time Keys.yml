@@ -1,0 +1,33 @@
+info:
+  name: Refill New User One-Time Keys
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: "{{baseUrl}}/devices/{{newUserDeviceId}}/one-time-prekeys"
+  body:
+    type: json
+    data: |-
+      {
+        "oneTimePreKeys": [
+          {
+            "keyId": 3,
+            "publicKey": "DQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0="
+          },
+          {
+            "keyId": 4,
+            "publicKey": "Dg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4="
+          }
+        ]
+      }
+  auth:
+    type: bearer
+    token: "{{newUserAccessToken}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
